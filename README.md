@@ -26,7 +26,9 @@ export STARTCOM_API_TOKEN_ID=[token_id]
 `./go-startapi -d [domain(s)]`
 
 Optional:
-  `-test` #uses apitest.startcom.com, which issues certs valid for 1 day. this is only for testing.
+  `-b [number]` number of bits for your rsa key. default 2048. what will you choose? 2048, 4096, more??? 
+  `-test` (uses apitest.startcom.com, which issues certs valid for 1 day. this is only for testing.)
+  `-type [ssl certificate type]` type of cert to generate, default dvssl. options: ovssl evssl ivssl madeupwhateverssl
 
 Go-startapi will generate a fresh RSA 4096 bit key, contact startcom, and write three files, the key, the certificate, and the intermediate certificate into the local directory.
 
