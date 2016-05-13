@@ -52,6 +52,6 @@ Startcom only allows you to issue three certs per CN in a 24 hour period, so don
 
 #Disclaimer
 
-I spent 92 minutes writing this. I even got lazy and used globals. It works. If it breaks... Meh
+I spent 92 minutes writing this and 12 documenting it. I even got lazy and used globals. It works. If it breaks... Meh
 
 
