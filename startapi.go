@@ -82,6 +82,7 @@ func loadClientCert(filename, password string) tls.Certificate {
 	}
 	cert, err := tls.X509KeyPair(c[0], c[2])
 	if err != nil {
+		log.Println("Check you are using the correct cert or providing the right password!")
 		log.Fatal(err)
 	}
 	return cert
@@ -109,9 +110,22 @@ func buildRequestForm(domains []string, csr []byte, vtype string) url.Values {
 	return form
 }
 
+func loadCsrAndKey(csrPath string, keyPath string) ([]byte, []byte) {
+	log.Println("Reading csr")
+	csr, err := ioutil.ReadFile(csrPath)
+	if err != nil {
+		fmt.Println(err)
+	}
+	log.Println("Reading key")
+	key, err := ioutil.ReadFile(keyPath)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return csr, key
+}
+
 func generateCsrAndKey(keybits int) ([]byte, []byte) {
 	template := buildCertificateRequest()
-	//template :=
 
 	privatekey, err := rsa.GenerateKey(rand.Reader, keybits)
 	if err != nil {
@@ -187,6 +201,9 @@ func main() {
 	typeF := flag.String("type", "dvssl", "type of cert to generate, default dvssl. options: ovssl evssl ivssl")
 	keyB := flag.Int("b", 2048, "how many bits for the rsa key? 2048, 4096, more??")
 	domainsPtr := flag.String("d", "", "domain list")
+	csrF := flag.String("csr", "", "Full path to a previously generated CSR")
+	keyF := flag.String("key", "", "Full path to a previously generated key that matches your CSR")
+	nameF := flag.String("name", "", "Optional name for the final certificate.")
 	flag.Parse()
 
 	if *testF {
@@ -198,22 +215,30 @@ func main() {
 		log.Fatal("You must specify at least one domain with `-d [domain]`")
 	}
 
-	fmt.Println("Generating Key and Certificate for domains: ", *domainsPtr)
-
 	//This is the client cert issued by startcom to access the api
+	fmt.Println("Loading the client cert to access startcom API: ./cert.p12")
 	cert := loadClientCert("cert.p12", P12_PASSWORD)
+	var csr, key []byte
 
-	//We Generate a Csr that is mostly useless and a Key
-	csr, key := generateCsrAndKey(*keyB)
+	if *csrF == "" {
+		fmt.Println("Generating Key and Certificate for domains: ", *domainsPtr)
+		//We Generate a Csr that is mostly useless and a Key
+		csr, key = generateCsrAndKey(*keyB)
+	} else {
+		fmt.Println("Looking up pre-generated CSR at: ", *csrF)
+		csr, key = loadCsrAndKey(*csrF, *keyF)
+	}
 
 	//fmt.Println(string(key))
 	res := doRequest(cert, buildRequestForm([]string{*domainsPtr}, csr, *typeF))
 	if res.Status == 1 {
+		if *nameF == "" {
+			nameF = domainsPtr
+		}
 		fmt.Printf("Successfully generated cert and key for: %s\n", *domainsPtr)
-		writeCertsAndKey(*domainsPtr, res.Data.Certificate, res.Data.IntermediateCertificate, string(key))
+		writeCertsAndKey(*nameF, res.Data.Certificate, res.Data.IntermediateCertificate, string(key))
 	} else {
 		fmt.Printf("Failed to generate cert and key for: %s\n", *domainsPtr)
 		fmt.Printf("Startcom returned the error: %s\n", res.ShortMsg)
 	}
-
 }
